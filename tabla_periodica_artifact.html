@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Tabla Periódica Interactiva</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f0f4f8;color:#222;font-size:14px}
+header{background:linear-gradient(135deg,#1D9E75,#185FA5);color:white;padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem}
+header h1{font-size:18px;font-weight:700;color:white}
+header p{font-size:12px;opacity:.85}
+#hdr-count{font-size:20px;font-weight:700;color:white}
+.main{padding:1rem;max-width:1200px;margin:0 auto}
+.tabs{display:flex;border-bottom:2px solid #ddd;margin-bottom:1rem;flex-wrap:wrap}
+.tab{padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:transparent;color:#888;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s}
+.tab:hover{color:#1D9E75}
+.tab.active{color:#1D9E75;border-bottom-color:#1D9E75}
+.panel{display:none}.panel.active{display:block}
+.legend{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;background:#fff;border-radius:8px;padding:8px;border:0.5px solid #e0e0e0}
+.leg-item{display:flex;align-items:center;gap:4px;font-size:10px;font-weight:500;color:#444}
+.leg-dot{width:11px;height:11px;border-radius:2px;flex-shrink:0}
+.filters{display:flex;gap:6px;margin-bottom:8px;align-items:center;flex-wrap:wrap}
+.filter-btn{padding:4px 10px;font-size:11px;font-weight:500;border:0.5px solid #ccc;border-radius:20px;background:#fff;cursor:pointer}
+.filter-btn.active,.filter-btn:hover{background:#1D9E75;color:#fff;border-color:#1D9E75}
+.pt-wrap{overflow-x:auto;padding-bottom:4px}
+.pt-grid{display:grid;grid-template-columns:repeat(18,minmax(42px,1fr));gap:2px;min-width:760px}
+.lan-section{margin-top:4px;min-width:760px}
+.lan-row{display:grid;grid-template-columns:repeat(18,minmax(42px,1fr));gap:2px;margin-top:2px}
+.cell{border-radius:5px;padding:3px 1px;text-align:center;cursor:pointer;transition:transform .15s,box-shadow .15s;border:0.5px solid rgba(0,0,0,0.1)}
+.cell:hover{transform:scale(1.2);z-index:20;position:relative;box-shadow:0 3px 10px rgba(0,0,0,0.2)}
+.cell .num{font-size:7px;line-height:1.3;opacity:.75}
+.cell .sym{font-size:12px;font-weight:700;line-height:1.2}
+.cell .nam{font-size:6px;line-height:1.3;opacity:.7;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.cell.has-ficha{box-shadow:0 0 0 2px #fff,0 0 0 3.5px #1D9E75}
+.cell.empty,.cell.spacer{background:transparent!important;border-color:transparent!important;cursor:default;pointer-events:none}
+.cell.spacer{background:#ececec!important;border-color:#ddd!important}
+.pt-note{font-size:10px;color:#aaa;text-align:center;margin-top:5px}
+.stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:1rem}
+.stat-card{background:#fff;border-radius:8px;padding:.75rem;text-align:center;border:0.5px solid #e0e0e0}
+.stat-card .sv{font-size:24px;font-weight:700;color:#222}
+.stat-card.verde .sv{color:#1D9E75}
+.stat-card .sl{font-size:10px;color:#888;margin-top:2px}
+.prog-row{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.prog-item{flex:1;min-width:130px;background:#fff;border-radius:8px;padding:10px;border:0.5px solid #e0e0e0}
+.prog-item .pi-label{font-size:11px;font-weight:600;color:#555;margin-bottom:3px}
+.prog-wrap{background:#eee;border-radius:10px;height:8px;overflow:hidden;margin:4px 0}
+.prog-bar{height:8px;border-radius:10px;background:linear-gradient(90deg,#1D9E75,#185FA5);transition:width .4s}
+.prog-item .pi-count{font-size:16px;font-weight:700;color:#1D9E75}
+.prog-item .pi-sub{font-size:10px;color:#aaa}
+.dropzone{border:2px dashed #ccc;border-radius:10px;padding:1.5rem;text-align:center;cursor:pointer;transition:all .2s;background:#fafafa;margin-bottom:1rem}
+.dropzone:hover,.dropzone.drag{border-color:#1D9E75;background:#f0faf7}
+.dropzone .dz-title{font-size:14px;font-weight:600;color:#444;margin-bottom:4px}
+.dropzone .dz-sub{font-size:11px;color:#999;line-height:1.7}
+.dropzone code{background:#eee;padding:1px 5px;border-radius:4px;font-size:11px}
+.file-list{display:flex;flex-direction:column;gap:5px;margin-bottom:1rem;max-height:260px;overflow-y:auto}
+.file-item{background:#fff;border:0.5px solid #e0e0e0;border-radius:7px;padding:8px 12px;display:flex;align-items:center;gap:8px}
+.fi-sym{width:32px;height:32px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+.fi-info{flex:1}
+.fi-name{font-weight:600;font-size:12px;color:#222}
+.fi-meta{font-size:10px;color:#888;margin-top:1px}
+.fi-status{font-size:10px;font-weight:600;color:#1D9E75;background:#e8f8f2;padding:2px 7px;border-radius:8px}
+.btns-row{display:flex;gap:6px;flex-wrap:wrap}
+.btn{padding:7px 14px;border-radius:7px;border:0.5px solid #ccc;background:#fff;font-size:12px;font-weight:500;cursor:pointer;transition:background .15s}
+.btn:hover{background:#f0f0f0}
+.btn-primary{background:#1D9E75;color:#fff;border-color:#1D9E75}
+.btn-primary:hover{background:#0F6E56}
+.btn-sm{padding:4px 9px;font-size:10px}
+.btn-danger{color:#c0392b;border-color:#f0c0c0}
+.prompt-card{background:#fff;border:0.5px solid #e0e0e0;border-radius:10px;padding:1.2rem;margin-bottom:.75rem}
+.prompt-card h3{font-size:13px;font-weight:600;color:#0F6E56;margin-bottom:10px}
+.prompt-text{font-size:11.5px;line-height:1.7;color:#333;white-space:pre-wrap;font-family:monospace;background:#f8fffe;border:0.5px solid #9FE1CB;border-radius:7px;padding:12px;max-height:300px;overflow-y:auto}
+.tip-box{background:#fffbea;border:0.5px solid #ffe082;border-radius:7px;padding:9px 12px;font-size:11.5px;color:#664d00;margin-top:8px;line-height:1.6}
+.inst-card{background:#fff;border:0.5px solid #e0e0e0;border-radius:10px;padding:1.2rem;margin-bottom:.75rem}
+.inst-card h2{font-size:15px;font-weight:600;color:#222;margin-bottom:.75rem}
+.step{display:flex;gap:12px;margin-bottom:10px;align-items:flex-start}
+.step-num{width:24px;height:24px;border-radius:50%;background:#1D9E75;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.step-text{font-size:12.5px;color:#444;line-height:1.6}
+.conv-box{background:#f0faf7;border:0.5px solid #9FE1CB;border-radius:7px;padding:10px 14px}
+.conv-box h3{font-size:12px;font-weight:600;color:#0F6E56;margin-bottom:5px}
+.conv-box p{font-size:12px;color:#333;line-height:1.7}
+code{background:#e8f5f0;padding:1px 5px;border-radius:4px;font-size:11.5px;color:#0a5c40}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:999;align-items:center;justify-content:center;padding:1rem}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:14px;width:100%;max-width:800px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden}
+.modal-hdr{padding:.9rem 1.2rem;border-bottom:0.5px solid #eee;display:flex;justify-content:space-between;align-items:center}
+.modal-hdr h2{font-size:16px;font-weight:600;color:#222}
+.modal-meta{font-size:11px;color:#888;margin-top:2px}
+.modal-close{width:28px;height:28px;border-radius:50%;border:none;background:#f0f0f0;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:#e0e0e0}
+.modal-body iframe{width:100%;height:560px;border:none;display:block}
+@media(max-width:500px){.stats-row{grid-template-columns:repeat(3,1fr)}.tab{padding:6px 10px;font-size:11px}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Tabla Periódica Interactiva</h1><p>Proyecto colaborativo — Curso de Ciencias II</p><p>Prof. Daniel Esquivel Yeh</p></div>
+  <div style="text-align:right"><div id="hdr-count">0 / 118</div><div style="font-size:11px;opacity:.8">fichas completadas</div></div>
+</header>
+<div class="main">
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('tabla')">Tabla Periódica</button>
+    <button class="tab" onclick="showTab('maestro')">Módulo Maestro</button>
+    <button class="tab" onclick="showTab('prompt')">Prompt Alumnos</button>
+    <button class="tab" onclick="showTab('instrucciones')">Instrucciones</button>
+  </div>
+
+  <div id="tab-tabla" class="panel active">
+    <div class="legend" id="legend"></div>
+    <div class="filters">
+      <span style="font-size:11px;color:#888;font-weight:500">Filtrar:</span>
+      <button class="filter-btn active" onclick="filterTable('all',this)">Todos</button>
+      <button class="filter-btn" onclick="filterTable('has',this)">Con ficha</button>
+      <button class="filter-btn" onclick="filterTable('no',this)">Sin ficha</button>
+    </div>
+    <div class="pt-wrap">
+      <div class="pt-grid" id="pt-grid"></div>
+      <div class="lan-section" id="lan-section"></div>
+    </div>
+    <p class="pt-note">Borde verde = ficha cargada · Haz clic en cualquier elemento para ver su ficha</p>
+  </div>
+
+  <div id="tab-maestro" class="panel">
+    <div class="stats-row">
+      <div class="stat-card verde"><div class="sv" id="st-total">0</div><div class="sl">Cargadas</div></div>
+      <div class="stat-card"><div class="sv" id="st-2a">0</div><div class="sl">Grupo 2A</div></div>
+      <div class="stat-card"><div class="sv" id="st-2c">0</div><div class="sl">Grupo 2C</div></div>
+      <div class="stat-card"><div class="sv" id="st-2d">0</div><div class="sl">Grupo 2D</div></div>
+      <div class="stat-card"><div class="sv" id="st-falta">118</div><div class="sl">Faltantes</div></div>
+    </div>
+    <div class="prog-row">
+      <div class="prog-item"><div class="pi-label">Grupo 2A</div><div class="prog-wrap"><div class="prog-bar" id="pb-2a" style="width:0%"></div></div><div class="pi-count" id="pc-2a">0</div><div class="pi-sub">elementos</div></div>
+      <div class="prog-item"><div class="pi-label">Grupo 2C</div><div class="prog-wrap"><div class="prog-bar" id="pb-2c" style="width:0%"></div></div><div class="pi-count" id="pc-2c">0</div><div class="pi-sub">elementos</div></div>
+      <div class="prog-item"><div class="pi-label">Grupo 2D</div><div class="prog-wrap"><div class="prog-bar" id="pb-2d" style="width:0%"></div></div><div class="pi-count" id="pc-2d">0</div><div class="pi-sub">elementos</div></div>
+    </div>
+    <div class="dropzone" id="dropzone" onclick="document.getElementById('fi').click()">
+      <div class="dz-title">⬆ Subir fichas HTML</div>
+      <div class="dz-sub">Haz clic o arrastra archivos <b>.html</b> aquí<br>
+        Nombre: <code>SIMBOLO_GRUPO.html</code> &nbsp;·&nbsp; Ej: <code>Fe_2C.html</code> &nbsp;·&nbsp; <code>N_2A.html</code> &nbsp;·&nbsp; <code>Au_2D.html</code></div>
+      <input type="file" id="fi" accept=".html" multiple style="display:none" onchange="handleFiles(this.files)">
+    </div>
+    <div class="file-list" id="file-list"><p style="color:#bbb;font-size:12px;text-align:center;padding:1rem">Aún no se han subido fichas.</p></div>
+    <div class="btns-row">
+      <button class="btn btn-primary" onclick="buildTable()">Actualizar tabla</button>
+      <button class="btn" onclick="exportCSV()">Exportar CSV</button>
+      <button class="btn btn-danger" onclick="clearAll()">Limpiar todo</button>
+    </div>
+  </div>
+
+  <div id="tab-prompt" class="panel">
+    <div class="prompt-card">
+      <h3>📋 Prompt listo para copiar y pegar en Claude</h3>
+      <div class="prompt-text" id="prompt-text">Hola Claude! Soy alumno de preparatoria y voy a generar la ficha del elemento químico: [ESCRIBE AQUÍ EL NOMBRE DEL ELEMENTO].
+
+Datos de mi equipo:
+- Integrantes: [NOMBRE 1], [NOMBRE 2], [NOMBRE 3]
+- Grupo: [2A / 2C / 2D]
+
+Por favor genera una ficha completa en HTML con las siguientes características:
+
+1. DISEÑO VISUAL: Ficha colorida y atractiva con encabezado con degradado usando los colores representativos de la familia del elemento. Tipografía clara, moderna y agradable para estudiantes.
+
+2. CONTENIDOS OBLIGATORIOS:
+   - Nombre completo del elemento
+   - Símbolo químico (grande y visible)
+   - Número atómico y masa atómica
+   - Familia / Grupo en la tabla periódica y Período
+   - Origen del nombre y descubrimiento (quién, cuándo, dónde)
+   - Distribución electrónica por capas (K, L, M...) con representación visual
+   - Configuración electrónica completa (ej: 1s² 2s² 2p³)
+   - Propiedades físicas: estado, color, punto de fusión, ebullición, densidad
+   - Propiedades químicas: electronegatividad, valencia, radio atómico
+   - Usos e importancia industrial y/o biológica
+   - Mínimo 5 datos curiosos interesantes
+   - Importancia biológica o ambiental
+
+3. MODELO ATÓMICO 3D ANIMADO con Three.js cargado EXACTAMENTE desde:
+   https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js
+   - Núcleo esférico giratorio con color representativo
+   - Electrones animados en sus órbitas por capa
+   - Órbitas como líneas translúcidas de distintos colores
+   - Canvas 300x260 px con fondo transparente
+
+4. FIRMA DEL EQUIPO al final: nombres de integrantes, grupo y fecha.
+
+5. CÓDIGO: Un solo archivo HTML autónomo, funciona directo en Chrome.
+
+¡Hazlo lo más bonito y completo posible para nuestra tabla periódica del salón!</div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="copyPrompt()">Copiar prompt</button>
+        <button class="btn" onclick="window.open('https://claude.ai','_blank')">Abrir Claude.ai ↗</button>
+      </div>
+      <div class="tip-box"><b>Para el alumno:</b> Reemplaza los campos entre [ ] con tu info real. Guarda el HTML que Claude genera como <code>SIMBOLO_GRUPO.html</code> (ej: <code>Fe_2C.html</code>) y entrégalo al maestro.</div>
+    </div>
+  </div>
+
+  <div id="tab-instrucciones" class="panel">
+    <div class="inst-card">
+      <h2>Instrucciones para el maestro</h2>
+      <div class="step"><div class="step-num">1</div><div class="step-text"><b>Comparte la pestaña "Prompt Alumnos"</b> con tus equipos. Cada equipo reemplaza el elemento, los nombres y el grupo.</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-text"><b>El alumno pega el prompt en Claude.ai</b> y obtiene el HTML. Lo guarda como <code>SIMBOLO_GRUPO.html</code> (ej: <code>Fe_2C.html</code>).</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-text"><b>Recibes los archivos</b> (correo, Drive, USB…) y los arrastras al <b>Módulo Maestro</b>. La tabla se actualiza sola.</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-text"><b>Haz clic en cualquier elemento</b> con borde verde para ver la ficha del alumno en pantalla completa.</div></div>
+      <div class="step"><div class="step-num">5</div><div class="step-text"><b>Exporta el CSV</b> para llevar control de entregas por grupo. Las fichas se guardan automáticamente en el navegador.</div></div>
+    </div>
+    <div class="conv-box">
+      <h3>Convención de nombres de archivo</h3>
+      <p>El archivo se llama: <code>SÍMBOLO_GRUPO.html</code><br>
+      Ejemplos: <code>H_2A.html</code> · <code>O_2C.html</code> · <code>Au_2D.html</code> · <code>Na_2A.html</code> · <code>Fe_2C.html</code><br>
+      El sistema detecta el elemento y el grupo automáticamente del nombre.</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div><h2 id="m-title">Ficha</h2><div class="modal-meta" id="m-meta"></div></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body"><iframe id="m-frame" sandbox="allow-scripts allow-same-origin"></iframe></div>
+  </div>
+</div>
+
+<script>
+const FAM={
+  "alc":{l:"Metales alcalinos",bg:"#fce4ec",tx:"#880e4f",br:"#f48fb1"},
+  "alkT":{l:"Metales alcalinotérreos",bg:"#fff3e0",tx:"#bf360c",br:"#ffcc80"},
+  "tra":{l:"Metales de transición",bg:"#e3f2fd",tx:"#0d47a1",br:"#90caf9"},
+  "oth":{l:"Otros metales",bg:"#e8f5e9",tx:"#1b5e20",br:"#a5d6a7"},
+  "met":{l:"Metaloides",bg:"#f3e5f5",tx:"#4a148c",br:"#ce93d8"},
+  "nom":{l:"No metales",bg:"#e0f7fa",tx:"#006064",br:"#80deea"},
+  "hal":{l:"Halógenos",bg:"#fff8e1",tx:"#f57f17",br:"#ffe082"},
+  "gas":{l:"Gases nobles",bg:"#fce4ec",tx:"#c62828",br:"#ef9a9a"},
+  "lan":{l:"Lantánidos",bg:"#e8eaf6",tx:"#1a237e",br:"#9fa8da"},
+  "act":{l:"Actínidos",bg:"#efebe9",tx:"#3e2723",br:"#bcaaa4"}
+};
+
+const EL=[
+  {n:1,s:"H",nm:"Hidrógeno",f:"nom",p:1,g:1},{n:2,s:"He",nm:"Helio",f:"gas",p:1,g:18},
+  {n:3,s:"Li",nm:"Litio",f:"alc",p:2,g:1},{n:4,s:"Be",nm:"Berilio",f:"alkT",p:2,g:2},
+  {n:5,s:"B",nm:"Boro",f:"met",p:2,g:13},{n:6,s:"C",nm:"Carbono",f:"nom",p:2,g:14},
+  {n:7,s:"N",nm:"Nitrógeno",f:"nom",p:2,g:15},{n:8,s:"O",nm:"Oxígeno",f:"nom",p:2,g:16},
+  {n:9,s:"F",nm:"Flúor",f:"hal",p:2,g:17},{n:10,s:"Ne",nm:"Neón",f:"gas",p:2,g:18},
+  {n:11,s:"Na",nm:"Sodio",f:"alc",p:3,g:1},{n:12,s:"Mg",nm:"Magnesio",f:"alkT",p:3,g:2},
+  {n:13,s:"Al",nm:"Aluminio",f:"oth",p:3,g:13},{n:14,s:"Si",nm:"Silicio",f:"met",p:3,g:14},
+  {n:15,s:"P",nm:"Fósforo",f:"nom",p:3,g:15},{n:16,s:"S",nm:"Azufre",f:"nom",p:3,g:16},
+  {n:17,s:"Cl",nm:"Cloro",f:"hal",p:3,g:17},{n:18,s:"Ar",nm:"Argón",f:"gas",p:3,g:18},
+  {n:19,s:"K",nm:"Potasio",f:"alc",p:4,g:1},{n:20,s:"Ca",nm:"Calcio",f:"alkT",p:4,g:2},
+  {n:21,s:"Sc",nm:"Escandio",f:"tra",p:4,g:3},{n:22,s:"Ti",nm:"Titanio",f:"tra",p:4,g:4},
+  {n:23,s:"V",nm:"Vanadio",f:"tra",p:4,g:5},{n:24,s:"Cr",nm:"Cromo",f:"tra",p:4,g:6},
+  {n:25,s:"Mn",nm:"Manganeso",f:"tra",p:4,g:7},{n:26,s:"Fe",nm:"Hierro",f:"tra",p:4,g:8},
+  {n:27,s:"Co",nm:"Cobalto",f:"tra",p:4,g:9},{n:28,s:"Ni",nm:"Níquel",f:"tra",p:4,g:10},
+  {n:29,s:"Cu",nm:"Cobre",f:"tra",p:4,g:11},{n:30,s:"Zn",nm:"Zinc",f:"tra",p:4,g:12},
+  {n:31,s:"Ga",nm:"Galio",f:"oth",p:4,g:13},{n:32,s:"Ge",nm:"Germanio",f:"met",p:4,g:14},
+  {n:33,s:"As",nm:"Arsénico",f:"met",p:4,g:15},{n:34,s:"Se",nm:"Selenio",f:"nom",p:4,g:16},
+  {n:35,s:"Br",nm:"Bromo",f:"hal",p:4,g:17},{n:36,s:"Kr",nm:"Kriptón",f:"gas",p:4,g:18},
+  {n:37,s:"Rb",nm:"Rubidio",f:"alc",p:5,g:1},{n:38,s:"Sr",nm:"Estroncio",f:"alkT",p:5,g:2},
+  {n:39,s:"Y",nm:"Itrio",f:"tra",p:5,g:3},{n:40,s:"Zr",nm:"Circonio",f:"tra",p:5,g:4},
+  {n:41,s:"Nb",nm:"Niobio",f:"tra",p:5,g:5},{n:42,s:"Mo",nm:"Molibdeno",f:"tra",p:5,g:6},
+  {n:43,s:"Tc",nm:"Tecnecio",f:"tra",p:5,g:7},{n:44,s:"Ru",nm:"Rutenio",f:"tra",p:5,g:8},
+  {n:45,s:"Rh",nm:"Rodio",f:"tra",p:5,g:9},{n:46,s:"Pd",nm:"Paladio",f:"tra",p:5,g:10},
+  {n:47,s:"Ag",nm:"Plata",f:"tra",p:5,g:11},{n:48,s:"Cd",nm:"Cadmio",f:"tra",p:5,g:12},
+  {n:49,s:"In",nm:"Indio",f:"oth",p:5,g:13},{n:50,s:"Sn",nm:"Estaño",f:"oth",p:5,g:14},
+  {n:51,s:"Sb",nm:"Antimonio",f:"met",p:5,g:15},{n:52,s:"Te",nm:"Teluro",f:"met",p:5,g:16},
+  {n:53,s:"I",nm:"Yodo",f:"hal",p:5,g:17},{n:54,s:"Xe",nm:"Xenón",f:"gas",p:5,g:18},
+  {n:55,s:"Cs",nm:"Cesio",f:"alc",p:6,g:1},{n:56,s:"Ba",nm:"Bario",f:"alkT",p:6,g:2},
+  {n:57,s:"La",nm:"Lantano",f:"lan",p:6,g:3},
+  {n:72,s:"Hf",nm:"Hafnio",f:"tra",p:6,g:4},{n:73,s:"Ta",nm:"Tántalo",f:"tra",p:6,g:5},
+  {n:74,s:"W",nm:"Wolframio",f:"tra",p:6,g:6},{n:75,s:"Re",nm:"Renio",f:"tra",p:6,g:7},
+  {n:76,s:"Os",nm:"Osmio",f:"tra",p:6,g:8},{n:77,s:"Ir",nm:"Iridio",f:"tra",p:6,g:9},
+  {n:78,s:"Pt",nm:"Platino",f:"tra",p:6,g:10},{n:79,s:"Au",nm:"Oro",f:"tra",p:6,g:11},
+  {n:80,s:"Hg",nm:"Mercurio",f:"tra",p:6,g:12},{n:81,s:"Tl",nm:"Talio",f:"oth",p:6,g:13},
+  {n:82,s:"Pb",nm:"Plomo",f:"oth",p:6,g:14},{n:83,s:"Bi",nm:"Bismuto",f:"oth",p:6,g:15},
+  {n:84,s:"Po",nm:"Polonio",f:"met",p:6,g:16},{n:85,s:"At",nm:"Astato",f:"hal",p:6,g:17},
+  {n:86,s:"Rn",nm:"Radón",f:"gas",p:6,g:18},
+  {n:87,s:"Fr",nm:"Francio",f:"alc",p:7,g:1},{n:88,s:"Ra",nm:"Radio",f:"alkT",p:7,g:2},
+  {n:89,s:"Ac",nm:"Actinio",f:"act",p:7,g:3},
+  {n:104,s:"Rf",nm:"Rutherfordio",f:"tra",p:7,g:4},{n:105,s:"Db",nm:"Dubnio",f:"tra",p:7,g:5},
+  {n:106,s:"Sg",nm:"Seaborgio",f:"tra",p:7,g:6},{n:107,s:"Bh",nm:"Bohrio",f:"tra",p:7,g:7},
+  {n:108,s:"Hs",nm:"Hasio",f:"tra",p:7,g:8},{n:109,s:"Mt",nm:"Meitnerio",f:"tra",p:7,g:9},
+  {n:110,s:"Ds",nm:"Darmstadtio",f:"tra",p:7,g:10},{n:111,s:"Rg",nm:"Roentgenio",f:"tra",p:7,g:11},
+  {n:112,s:"Cn",nm:"Copernicio",f:"tra",p:7,g:12},{n:113,s:"Nh",nm:"Nihonio",f:"oth",p:7,g:13},
+  {n:114,s:"Fl",nm:"Flerovio",f:"oth",p:7,g:14},{n:115,s:"Mc",nm:"Moscovio",f:"oth",p:7,g:15},
+  {n:116,s:"Lv",nm:"Livermorio",f:"oth",p:7,g:16},{n:117,s:"Ts",nm:"Teneso",f:"hal",p:7,g:17},
+  {n:118,s:"Og",nm:"Oganesón",f:"gas",p:7,g:18},
+  {n:58,s:"Ce",nm:"Cerio",f:"lan",lp:2},{n:59,s:"Pr",nm:"Praseodimio",f:"lan",lp:3},
+  {n:60,s:"Nd",nm:"Neodimio",f:"lan",lp:4},{n:61,s:"Pm",nm:"Prometio",f:"lan",lp:5},
+  {n:62,s:"Sm",nm:"Samario",f:"lan",lp:6},{n:63,s:"Eu",nm:"Europio",f:"lan",lp:7},
+  {n:64,s:"Gd",nm:"Gadolinio",f:"lan",lp:8},{n:65,s:"Tb",nm:"Terbio",f:"lan",lp:9},
+  {n:66,s:"Dy",nm:"Disprosio",f:"lan",lp:10},{n:67,s:"Ho",nm:"Holmio",f:"lan",lp:11},
+  {n:68,s:"Er",nm:"Erbio",f:"lan",lp:12},{n:69,s:"Tm",nm:"Tulio",f:"lan",lp:13},
+  {n:70,s:"Yb",nm:"Iterbio",f:"lan",lp:14},{n:71,s:"Lu",nm:"Lutecio",f:"lan",lp:15},
+  {n:90,s:"Th",nm:"Torio",f:"act",ap:2},{n:91,s:"Pa",nm:"Protactinio",f:"act",ap:3},
+  {n:92,s:"U",nm:"Uranio",f:"act",ap:4},{n:93,s:"Np",nm:"Neptunio",f:"act",ap:5},
+  {n:94,s:"Pu",nm:"Plutonio",f:"act",ap:6},{n:95,s:"Am",nm:"Americio",f:"act",ap:7},
+  {n:96,s:"Cm",nm:"Curio",f:"act",ap:8},{n:97,s:"Bk",nm:"Berkelio",f:"act",ap:9},
+  {n:98,s:"Cf",nm:"Californio",f:"act",ap:10},{n:99,s:"Es",nm:"Einsteinio",f:"act",ap:11},
+  {n:100,s:"Fm",nm:"Fermio",f:"act",ap:12},{n:101,s:"Md",nm:"Mendelevio",f:"act",ap:13},
+  {n:102,s:"No",nm:"Nobelio",f:"act",ap:14},{n:103,s:"Lr",nm:"Laurencio",f:"act",ap:15}
+];
+
+let fichas={}, curF='all';
+
+try{
+  const m=localStorage.getItem('pt_meta');
+  if(m){const meta=JSON.parse(m);Object.keys(meta).forEach(s=>{const h=localStorage.getItem('pt_html_'+s);if(h)fichas[s]={...meta[s],html:h};});}
+}catch(e){}
+
+function save(){try{const m={};Object.keys(fichas).forEach(s=>{m[s]={grupo:fichas[s].grupo,file:fichas[s].file,fecha:fichas[s].fecha};localStorage.setItem('pt_html_'+s,fichas[s].html);});localStorage.setItem('pt_meta',JSON.stringify(m));}catch(e){}}
+function getEl(s){return EL.find(e=>e.s===s);}
+
+function buildLegend(){
+  document.getElementById('legend').innerHTML=Object.values(FAM).map(v=>`<div class="leg-item"><div class="leg-dot" style="background:${v.bg};border:1px solid ${v.br}"></div><span>${v.l}</span></div>`).join('');
+}
+
+function mkCell(el){
+  const f=FAM[el.f],has=!!fichas[el.s];
+  const op=(curF==='has'&&!has)||(curF==='no'&&has)?'0.12':'1';
+  const d=document.createElement('div');
+  d.className='cell'+(has?' has-ficha':'');
+  d.style.cssText=`background:${f.bg};border-color:${f.br};opacity:${op}`;
+  d.title=el.nm+(has?' ✓':' — sin ficha');
+  d.innerHTML=`<div class="num" style="color:${f.tx}">${el.n}</div><div class="sym" style="color:${f.tx}">${el.s}</div><div class="nam" style="color:${f.tx}">${el.nm.length>8?el.nm.slice(0,7)+'…':el.nm}</div>`;
+  d.onclick=()=>openFicha(el);
+  return d;
+}
+
+function mkEmpty(txt){const d=document.createElement('div');d.className=txt?'cell spacer':'cell empty';if(txt)d.innerHTML=`<div style="font-size:6px;color:#aaa;line-height:3.5">${txt}</div>`;return d;}
+
+function buildTable(){
+  const grid=document.getElementById('pt-grid');
+  grid.innerHTML='';
+  const map={};EL.filter(e=>!e.lp&&!e.ap).forEach(e=>{map[`${e.p}_${e.g}`]=e;});
+  for(let p=1;p<=7;p++)for(let g=1;g<=18;g++){
+    const el=map[`${p}_${g}`];
+    if(!el){grid.appendChild(mkEmpty((p===6&&g===3)?'57-71':(p===7&&g===3)?'89-103':null));}
+    else grid.appendChild(mkCell(el));
+  }
+  const ls=document.getElementById('lan-section');
+  ls.innerHTML='';
+  const lanRow=document.createElement('div');lanRow.className='lan-row';
+  for(let i=0;i<3;i++)lanRow.appendChild(mkEmpty(null));
+  const laEl=getEl('La');if(laEl)lanRow.appendChild(mkCell(laEl));
+  EL.filter(e=>e.lp).sort((a,b)=>a.lp-b.lp).forEach(el=>lanRow.appendChild(mkCell(el)));
+  lanRow.appendChild(mkEmpty(null));
+  ls.appendChild(lanRow);
+  const actRow=document.createElement('div');actRow.className='lan-row';
+  for(let i=0;i<3;i++)actRow.appendChild(mkEmpty(null));
+  const acEl=getEl('Ac');if(acEl)actRow.appendChild(mkCell(acEl));
+  EL.filter(e=>e.ap).sort((a,b)=>a.ap-b.ap).forEach(el=>actRow.appendChild(mkCell(el)));
+  actRow.appendChild(mkEmpty(null));
+  ls.appendChild(actRow);
+  updateStats();
+}
+
+function openFicha(el){
+  if(!fichas[el.s]){alert(`Aún no hay ficha para ${el.nm} (${el.s}). ¡Pide al equipo que la genere!`);return;}
+  const d=fichas[el.s];
+  document.getElementById('m-title').textContent=`${el.nm} (${el.s})`;
+  document.getElementById('m-meta').textContent=`Grupo: ${d.grupo} · ${d.fecha}`;
+  const blob=new Blob([d.html],{type:'text/html'});
+  document.getElementById('m-frame').src=URL.createObjectURL(blob);
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+
+function handleFiles(files){
+  const errs=[];
+  Array.from(files).forEach(f=>{
+    const name=f.name.replace(/\.html$/i,'');
+    const parts=name.split('_');
+    const sym=parts[0],grupo=(parts[1]||'?').toUpperCase();
+    if(!getEl(sym)){errs.push(f.name);return;}
+    const r=new FileReader();
+    r.onload=e=>{fichas[sym]={html:e.target.result,grupo,file:f.name,fecha:new Date().toLocaleDateString('es-MX')};save();renderFiles();buildTable();};
+    r.readAsText(f);
+  });
+  if(errs.length)setTimeout(()=>alert(`Archivos no reconocidos:\n${errs.join('\n')}\n\nUsa el formato SIMBOLO_GRUPO.html`),300);
+}
+
+function renderFiles(){
+  const fl=document.getElementById('file-list');
+  const ents=Object.entries(fichas);
+  if(!ents.length){fl.innerHTML='<p style="color:#bbb;font-size:12px;text-align:center;padding:1rem">Aún no se han subido fichas.</p>';return;}
+  fl.innerHTML=ents.map(([s,d])=>{
+    const el=getEl(s),f=el?FAM[el.f]:null;
+    return `<div class="file-item"><div class="fi-sym" style="background:${f?f.bg:'#eee'};color:${f?f.tx:'#555'}">${s}</div><div class="fi-info"><div class="fi-name">${el?el.nm:s}</div><div class="fi-meta">Grupo ${d.grupo} · ${d.fecha} · ${d.file}</div></div><span class="fi-status">Cargada</span><button class="btn btn-sm btn-danger" onclick="rmFicha('${s}')">Quitar</button></div>`;
+  }).join('');
+}
+
+function rmFicha(s){delete fichas[s];try{localStorage.removeItem('pt_html_'+s);}catch(e){}save();renderFiles();buildTable();}
+
+function updateStats(){
+  const all=Object.keys(fichas);
+  const c2a=all.filter(s=>fichas[s].grupo==='2A').length;
+  const c2c=all.filter(s=>fichas[s].grupo==='2C').length;
+  const c2d=all.filter(s=>fichas[s].grupo==='2D').length;
+  document.getElementById('st-total').textContent=all.length;
+  document.getElementById('st-2a').textContent=c2a;
+  document.getElementById('st-2c').textContent=c2c;
+  document.getElementById('st-2d').textContent=c2d;
+  document.getElementById('st-falta').textContent=118-all.length;
+  document.getElementById('pb-2a').style.width=Math.min(100,c2a/40*100)+'%';
+  document.getElementById('pb-2c').style.width=Math.min(100,c2c/40*100)+'%';
+  document.getElementById('pb-2d').style.width=Math.min(100,c2d/40*100)+'%';
+  document.getElementById('pc-2a').textContent=c2a;
+  document.getElementById('pc-2c').textContent=c2c;
+  document.getElementById('pc-2d').textContent=c2d;
+  document.getElementById('hdr-count').textContent=all.length+' / 118';
+}
+
+function filterTable(f,btn){curF=f;document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');buildTable();}
+
+function exportCSV(){
+  let csv='Símbolo,Elemento,Familia,Grupo,Archivo,Fecha\n';
+  Object.entries(fichas).forEach(([s,d])=>{const el=getEl(s);csv+=`${s},"${el?el.nm:'?'}","${el?FAM[el.f].l:'?'}",${d.grupo},"${d.file}",${d.fecha}\n`;});
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='registro_tabla.csv';a.click();
+}
+
+function clearAll(){if(confirm('¿Borrar todas las fichas? Esta acción no se puede deshacer.')){Object.keys(fichas).forEach(s=>{try{localStorage.removeItem('pt_html_'+s);}catch(e){}});fichas={};try{localStorage.removeItem('pt_meta');}catch(e){}renderFiles();buildTable();}}
+
+function copyPrompt(){
+  navigator.clipboard.writeText(document.getElementById('prompt-text').textContent).then(()=>{
+    const b=event.currentTarget;b.textContent='¡Copiado!';b.style.background='#0F6E56';
+    setTimeout(()=>{b.textContent='Copiar prompt';b.style.background='';},2500);
+  });
+}
+
+function showTab(id){
+  ['tabla','maestro','prompt','instrucciones'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('active',t===id);
+  });
+  document.querySelectorAll('.tab').forEach((t,i)=>{t.classList.toggle('active',['tabla','maestro','prompt','instrucciones'][i]===id);});
+}
+
+const dz=document.getElementById('dropzone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');handleFiles(e.dataTransfer.files);});
+
+buildLegend();buildTable();renderFiles();
+</script>
+</body>
+</html>
