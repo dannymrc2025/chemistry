@@ -26,13 +26,14 @@ header p{font-size:12px;opacity:.85}
 .pt-grid{display:grid;grid-template-columns:repeat(18,minmax(42px,1fr));gap:2px;min-width:760px}
 .lan-section{margin-top:4px;min-width:760px}
 .lan-row{display:grid;grid-template-columns:repeat(18,minmax(42px,1fr));gap:2px;margin-top:2px}
-.cell{border-radius:5px;padding:3px 1px;text-align:center;cursor:pointer;transition:transform .15s,box-shadow .15s;border:0.5px solid rgba(0,0,0,0.1)}
-.cell:hover{transform:scale(1.2);z-index:20;position:relative;box-shadow:0 3px 10px rgba(0,0,0,0.2)}
+.cell{border-radius:5px;padding:3px 1px;text-align:center;cursor:pointer;transition:transform .18s,box-shadow .18s,opacity .18s,filter .18s;border:0.5px solid rgba(0,0,0,0.08);filter:grayscale(55%);opacity:0.45}
+.cell:hover{transform:scale(1.2);z-index:20;position:relative}
 .cell .num{font-size:7px;line-height:1.3;opacity:.75}
 .cell .sym{font-size:12px;font-weight:700;line-height:1.2}
 .cell .nam{font-size:6px;line-height:1.3;opacity:.7;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.cell.has-ficha{box-shadow:0 0 0 2px #fff,0 0 0 3.5px #1D9E75}
-.cell.empty,.cell.spacer{background:transparent!important;border-color:transparent!important;cursor:default;pointer-events:none}
+.cell.has-ficha{filter:grayscale(0%) brightness(1.05);opacity:1;border-color:rgba(0,0,0,0.15)}
+.cell.has-ficha:hover{transform:scale(1.22);box-shadow:0 0 12px 3px var(--glow,rgba(100,100,200,0.4))}
+.cell.empty,.cell.spacer{background:transparent!important;border-color:transparent!important;cursor:default;pointer-events:none;filter:none;opacity:1}
 .cell.spacer{background:#ececec!important;border-color:#ddd!important}
 .pt-note{font-size:10px;color:#aaa;text-align:center;margin-top:5px}
 .stats-row{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:1rem}
@@ -88,14 +89,23 @@ code{background:#e8f5f0;padding:1px 5px;border-radius:4px;font-size:11.5px;color
 .modal-close{width:28px;height:28px;border-radius:50%;border:none;background:#f0f0f0;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center}
 .modal-close:hover{background:#e0e0e0}
 .modal-body iframe{width:100%;height:560px;border:none;display:block}
+.sync-badge{font-size:10px;padding:3px 8px;border-radius:10px;font-weight:600;margin-left:8px}
+.sync-ok{background:#e8f8f2;color:#0F6E56}
+.sync-err{background:#fff0f0;color:#c0392b}
+.sync-loading{background:#fff8e1;color:#856404}
 @media(max-width:500px){.stats-row{grid-template-columns:repeat(3,1fr)}.tab{padding:6px 10px;font-size:11px}}
 </style>
 </head>
 <body>
 <header>
-  <div><h1>Tabla Periódica Interactiva</h1><p>Proyecto colaborativo — Curso de Ciencias II</p><p>Prof. Daniel Esquivel Yeh</p></div>
+  <div>
+    <h1>Tabla Periódica Interactiva <span id="sync-indicator" class="sync-badge sync-loading">Conectando...</span></h1>
+    <p>Proyecto colaborativo — Curso de Ciencias II</p>
+    <p>Prof. Daniel Esquivel Yeh</p>
+  </div>
   <div style="text-align:right"><div id="hdr-count">0 / 118</div><div style="font-size:11px;opacity:.8">fichas completadas</div></div>
 </header>
+
 <div class="main">
   <div class="tabs">
     <button class="tab active" onclick="showTab('tabla')">Tabla Periódica</button>
@@ -115,7 +125,7 @@ code{background:#e8f5f0;padding:1px 5px;border-radius:4px;font-size:11.5px;color
       <div class="pt-grid" id="pt-grid"></div>
       <div class="lan-section" id="lan-section"></div>
     </div>
-    <p class="pt-note">Borde verde = ficha cargada · Haz clic en cualquier elemento para ver su ficha</p>
+    <p class="pt-note">Elementos opacos = pendientes · Elementos brillantes = ficha cargada · Haz clic para ver la ficha</p>
   </div>
 
   <div id="tab-maestro" class="panel">
@@ -151,9 +161,9 @@ code{background:#e8f5f0;padding:1px 5px;border-radius:4px;font-size:11.5px;color
           Nombre: <code>SIMBOLO_GRUPO.html</code> &nbsp;·&nbsp; Ej: <code>Fe_2C.html</code> &nbsp;·&nbsp; <code>N_2A.html</code> &nbsp;·&nbsp; <code>Au_2D.html</code></div>
         <input type="file" id="fi" accept=".html" multiple style="display:none" onchange="handleFiles(this.files)">
       </div>
-      <div class="file-list" id="file-list"><p style="color:#bbb;font-size:12px;text-align:center;padding:1rem">Aún no se han subido fichas.</p></div>
+      <div class="file-list" id="file-list"><p style="color:#bbb;font-size:12px;text-align:center;padding:1rem">Cargando fichas...</p></div>
       <div class="btns-row">
-        <button class="btn btn-primary" onclick="buildTable()">Actualizar tabla</button>
+        <button class="btn btn-primary" onclick="loadFromFirebase()">Recargar de la nube</button>
         <button class="btn" onclick="exportCSV()">Exportar CSV</button>
         <button class="btn btn-danger" onclick="clearAll()">Limpiar todo</button>
       </div>
@@ -162,9 +172,9 @@ code{background:#e8f5f0;padding:1px 5px;border-radius:4px;font-size:11.5px;color
         <h2>Instrucciones para el maestro</h2>
         <div class="step"><div class="step-num">1</div><div class="step-text"><b>Comparte la pestaña "Prompt Alumnos"</b> con tus equipos. Cada equipo reemplaza el elemento, los nombres y el grupo.</div></div>
         <div class="step"><div class="step-num">2</div><div class="step-text"><b>El alumno pega el prompt en Claude.ai</b> y obtiene el HTML. Lo guarda como <code>SIMBOLO_GRUPO.html</code> (ej: <code>Fe_2C.html</code>).</div></div>
-        <div class="step"><div class="step-num">3</div><div class="step-text"><b>Recibes los archivos</b> (correo, Drive, USB…) y los arrastras aquí arriba. La tabla se actualiza sola.</div></div>
-        <div class="step"><div class="step-num">4</div><div class="step-text"><b>Haz clic en cualquier elemento</b> con borde verde para ver la ficha del alumno en pantalla completa.</div></div>
-        <div class="step"><div class="step-num">5</div><div class="step-text"><b>Exporta el CSV</b> para llevar control de entregas por grupo. Las fichas se guardan automáticamente en el navegador.</div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-text"><b>Recibes los archivos</b> y los arrastras aquí. Se guardan automáticamente en la nube — todos los usuarios ven la tabla actualizada al instante.</div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-text"><b>Haz clic en cualquier elemento brillante</b> para ver la ficha del alumno en pantalla completa.</div></div>
+        <div class="step"><div class="step-num">5</div><div class="step-text"><b>Exporta el CSV</b> para llevar control de entregas por grupo.</div></div>
       </div>
       <div class="conv-box">
         <h3>Convención de nombres de archivo</h3>
@@ -221,7 +231,6 @@ Por favor genera una ficha completa en HTML con las siguientes características:
       <div class="tip-box"><b>Para el alumno:</b> Reemplaza los campos entre [ ] con tu info real. Guarda el HTML que Claude genera como <code>SIMBOLO_GRUPO.html</code> (ej: <code>Fe_2C.html</code>) y entrégalo al maestro.</div>
     </div>
   </div>
-
 </div>
 
 <div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
@@ -233,6 +242,59 @@ Por favor genera una ficha completa en HTML con las siguientes características:
     <div class="modal-body"><iframe id="m-frame" sandbox="allow-scripts allow-same-origin"></iframe></div>
   </div>
 </div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCvfZtCbMjJzrea8i-c8Alv2_xtYURo-Tc",
+  authDomain: "chemistrydb-42fd2.firebaseapp.com",
+  projectId: "chemistrydb-42fd2",
+  storageBucket: "chemistrydb-42fd2.firebasestorage.app",
+  messagingSenderId: "556461732525",
+  appId: "1:556461732525:web:24ada57e574dee155f8c24",
+  measurementId: "G-EZ94E9E2GS"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const COLL = "fichas";
+
+window._db = db;
+window._collection = collection;
+window._doc = doc;
+window._setDoc = setDoc;
+window._getDocs = getDocs;
+window._deleteDoc = deleteDoc;
+window._onSnapshot = onSnapshot;
+window._COLL = COLL;
+
+const ind = document.getElementById('sync-indicator');
+ind.textContent = '● En vivo';
+ind.className = 'sync-badge sync-ok';
+
+// Escucha cambios en tiempo real
+const unsubscribe = onSnapshot(collection(db, COLL), (snapshot) => {
+  snapshot.docChanges().forEach(change => {
+    if (change.type === 'added' || change.type === 'modified') {
+      const d = change.doc.data();
+      window.fichas[change.doc.id] = d;
+    }
+    if (change.type === 'removed') {
+      delete window.fichas[change.doc.id];
+    }
+  });
+  buildTable();
+  renderFiles();
+}, (error) => {
+  ind.textContent = '● Sin conexión';
+  ind.className = 'sync-badge sync-err';
+});
+
+window._dbReady = true;
+</script>
 
 <script>
 const FAM={
@@ -247,7 +309,6 @@ const FAM={
   "lan":{l:"Lantánidos",bg:"#e8eaf6",tx:"#1a237e",br:"#9fa8da"},
   "act":{l:"Actínidos",bg:"#efebe9",tx:"#3e2723",br:"#bcaaa4"}
 };
-
 const EL=[
   {n:1,s:"H",nm:"Hidrógeno",f:"nom",p:1,g:1},{n:2,s:"He",nm:"Helio",f:"gas",p:1,g:18},
   {n:3,s:"Li",nm:"Litio",f:"alc",p:2,g:1},{n:4,s:"Be",nm:"Berilio",f:"alkT",p:2,g:2},
@@ -312,14 +373,9 @@ const EL=[
   {n:102,s:"No",nm:"Nobelio",f:"act",ap:14},{n:103,s:"Lr",nm:"Laurencio",f:"act",ap:15}
 ];
 
-let fichas={}, curF='all';
+window.fichas = {};
+let curF = 'all';
 
-try{
-  const m=localStorage.getItem('pt_meta');
-  if(m){const meta=JSON.parse(m);Object.keys(meta).forEach(s=>{const h=localStorage.getItem('pt_html_'+s);if(h)fichas[s]={...meta[s],html:h};});}
-}catch(e){}
-
-function save(){try{const m={};Object.keys(fichas).forEach(s=>{m[s]={grupo:fichas[s].grupo,file:fichas[s].file,fecha:fichas[s].fecha};localStorage.setItem('pt_html_'+s,fichas[s].html);});localStorage.setItem('pt_meta',JSON.stringify(m));}catch(e){}}
 function getEl(s){return EL.find(e=>e.s===s);}
 
 function buildLegend(){
@@ -328,11 +384,12 @@ function buildLegend(){
 
 function mkCell(el){
   const f=FAM[el.f],has=!!fichas[el.s];
-  const op=(curF==='has'&&!has)||(curF==='no'&&has)?'0.12':'1';
+  const filterOp=(curF==='has'&&!has)||(curF==='no'&&has)?'0.08':'1';
   const d=document.createElement('div');
   d.className='cell'+(has?' has-ficha':'');
-  d.style.cssText=`background:${f.bg};border-color:${f.br};opacity:${op}`;
-  d.title=el.nm+(has?' ✓':' — sin ficha');
+  d.style.cssText=`background:${f.bg};border-color:${f.br};opacity:${filterOp}`;
+  if(has) d.style.setProperty('--glow', f.br+'99');
+  d.title=el.nm+(has?' ✓ Ficha cargada':' — pendiente');
   d.innerHTML=`<div class="num" style="color:${f.tx}">${el.n}</div><div class="sym" style="color:${f.tx}">${el.s}</div><div class="nam" style="color:${f.tx}">${el.nm.length>8?el.nm.slice(0,7)+'…':el.nm}</div>`;
   d.onclick=()=>openFicha(el);
   return d;
@@ -377,6 +434,13 @@ function openFicha(el){
 }
 function closeModal(){document.getElementById('modal').classList.remove('open');}
 
+async function saveToFirebase(sym, data){
+  if(!window._dbReady) return;
+  try {
+    await window._setDoc(window._doc(window._db, window._COLL, sym), data);
+  } catch(e){ alert('Error al guardar en la nube: '+e.message); }
+}
+
 function handleFiles(files){
   const errs=[];
   Array.from(files).forEach(f=>{
@@ -385,7 +449,10 @@ function handleFiles(files){
     const sym=parts[0],grupo=(parts[1]||'?').toUpperCase();
     if(!getEl(sym)){errs.push(f.name);return;}
     const r=new FileReader();
-    r.onload=e=>{fichas[sym]={html:e.target.result,grupo,file:f.name,fecha:new Date().toLocaleDateString('es-MX')};save();renderFiles();buildTable();};
+    r.onload=async e=>{
+      const data={html:e.target.result,grupo,file:f.name,fecha:new Date().toLocaleDateString('es-MX')};
+      await saveToFirebase(sym, data);
+    };
     r.readAsText(f);
   });
   if(errs.length)setTimeout(()=>alert(`Archivos no reconocidos:\n${errs.join('\n')}\n\nUsa el formato SIMBOLO_GRUPO.html`),300);
@@ -397,11 +464,26 @@ function renderFiles(){
   if(!ents.length){fl.innerHTML='<p style="color:#bbb;font-size:12px;text-align:center;padding:1rem">Aún no se han subido fichas.</p>';return;}
   fl.innerHTML=ents.map(([s,d])=>{
     const el=getEl(s),f=el?FAM[el.f]:null;
-    return `<div class="file-item"><div class="fi-sym" style="background:${f?f.bg:'#eee'};color:${f?f.tx:'#555'}">${s}</div><div class="fi-info"><div class="fi-name">${el?el.nm:s}</div><div class="fi-meta">Grupo ${d.grupo} · ${d.fecha} · ${d.file}</div></div><span class="fi-status">Cargada</span><button class="btn btn-sm btn-danger" onclick="rmFicha('${s}')">Quitar</button></div>`;
+    return `<div class="file-item"><div class="fi-sym" style="background:${f?f.bg:'#eee'};color:${f?f.tx:'#555'}">${s}</div><div class="fi-info"><div class="fi-name">${el?el.nm:s}</div><div class="fi-meta">Grupo ${d.grupo} · ${d.fecha} · ${d.file}</div></div><span class="fi-status">En nube ☁</span><button class="btn btn-sm btn-danger" onclick="rmFicha('${s}')">Quitar</button></div>`;
   }).join('');
 }
 
-function rmFicha(s){delete fichas[s];try{localStorage.removeItem('pt_html_'+s);}catch(e){}save();renderFiles();buildTable();}
+async function rmFicha(s){
+  if(!window._dbReady) return;
+  if(!confirm(`¿Quitar la ficha de ${getEl(s)?.nm||s}?`)) return;
+  try { await window._deleteDoc(window._doc(window._db, window._COLL, s)); }
+  catch(e){ alert('Error: '+e.message); }
+}
+
+async function loadFromFirebase(){
+  if(!window._dbReady){alert('Firebase no está listo aún.');return;}
+  try {
+    const snap = await window._getDocs(window._collection(window._db, window._COLL));
+    window.fichas={};
+    snap.forEach(d=>{ window.fichas[d.id]=d.data(); });
+    buildTable(); renderFiles();
+  } catch(e){ alert('Error al cargar: '+e.message); }
+}
 
 function updateStats(){
   const all=Object.keys(fichas);
@@ -430,7 +512,13 @@ function exportCSV(){
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='registro_tabla.csv';a.click();
 }
 
-function clearAll(){if(confirm('¿Borrar todas las fichas? Esta acción no se puede deshacer.')){Object.keys(fichas).forEach(s=>{try{localStorage.removeItem('pt_html_'+s);}catch(e){}});fichas={};try{localStorage.removeItem('pt_meta');}catch(e){}renderFiles();buildTable();}}
+async function clearAll(){
+  if(!confirm('¿Borrar TODAS las fichas de la nube? No se puede deshacer.')) return;
+  const syms=Object.keys(fichas);
+  for(const s of syms){
+    try{ await window._deleteDoc(window._doc(window._db, window._COLL, s)); }catch(e){}
+  }
+}
 
 function copyPrompt(){
   navigator.clipboard.writeText(document.getElementById('prompt-text').textContent).then(()=>{
@@ -470,7 +558,8 @@ dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag');}
 dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
 dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');handleFiles(e.dataTransfer.files);});
 
-buildLegend();buildTable();renderFiles();
+buildLegend();
+buildTable();
 </script>
 </body>
 </html>
