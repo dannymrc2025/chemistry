@@ -101,7 +101,6 @@ code{background:#e8f5f0;padding:1px 5px;border-radius:4px;font-size:11.5px;color
     <button class="tab active" onclick="showTab('tabla')">Tabla Periódica</button>
     <button class="tab" onclick="showTab('maestro')">Módulo Maestro</button>
     <button class="tab" onclick="showTab('prompt')">Prompt Alumnos</button>
-    <button class="tab" onclick="showTab('instrucciones')">Instrucciones</button>
   </div>
 
   <div id="tab-tabla" class="panel active">
@@ -120,36 +119,66 @@ code{background:#e8f5f0;padding:1px 5px;border-radius:4px;font-size:11.5px;color
   </div>
 
   <div id="tab-maestro" class="panel">
-    <div class="stats-row">
-      <div class="stat-card verde"><div class="sv" id="st-total">0</div><div class="sl">Cargadas</div></div>
-      <div class="stat-card"><div class="sv" id="st-2a">0</div><div class="sl">Grupo 2A</div></div>
-      <div class="stat-card"><div class="sv" id="st-2c">0</div><div class="sl">Grupo 2C</div></div>
-      <div class="stat-card"><div class="sv" id="st-2d">0</div><div class="sl">Grupo 2D</div></div>
-      <div class="stat-card"><div class="sv" id="st-falta">118</div><div class="sl">Faltantes</div></div>
+    <div id="maestro-lock" style="max-width:320px;margin:2rem auto;background:#fff;border:0.5px solid #e0e0e0;border-radius:12px;padding:2rem;text-align:center">
+      <div style="font-size:40px;margin-bottom:10px">🔒</div>
+      <div style="font-size:15px;font-weight:600;color:#222;margin-bottom:4px">Módulo Maestro</div>
+      <div style="font-size:12px;color:#888;margin-bottom:1.2rem">Acceso exclusivo para el profesor</div>
+      <input type="password" id="pwd-input" placeholder="Contraseña" maxlength="20"
+        style="width:100%;padding:9px 12px;border:0.5px solid #ccc;border-radius:8px;font-size:14px;text-align:center;margin-bottom:10px;outline:none"
+        onkeydown="if(event.key==='Enter')checkPwd()">
+      <button class="btn btn-primary" style="width:100%;margin-top:2px" onclick="checkPwd()">Entrar</button>
+      <div id="pwd-err" style="color:#c0392b;font-size:11px;margin-top:8px;min-height:16px"></div>
     </div>
-    <div class="prog-row">
-      <div class="prog-item"><div class="pi-label">Grupo 2A</div><div class="prog-wrap"><div class="prog-bar" id="pb-2a" style="width:0%"></div></div><div class="pi-count" id="pc-2a">0</div><div class="pi-sub">elementos</div></div>
-      <div class="prog-item"><div class="pi-label">Grupo 2C</div><div class="prog-wrap"><div class="prog-bar" id="pb-2c" style="width:0%"></div></div><div class="pi-count" id="pc-2c">0</div><div class="pi-sub">elementos</div></div>
-      <div class="prog-item"><div class="pi-label">Grupo 2D</div><div class="prog-wrap"><div class="prog-bar" id="pb-2d" style="width:0%"></div></div><div class="pi-count" id="pc-2d">0</div><div class="pi-sub">elementos</div></div>
-    </div>
-    <div class="dropzone" id="dropzone" onclick="document.getElementById('fi').click()">
-      <div class="dz-title">⬆ Subir fichas HTML</div>
-      <div class="dz-sub">Haz clic o arrastra archivos <b>.html</b> aquí<br>
-        Nombre: <code>SIMBOLO_GRUPO.html</code> &nbsp;·&nbsp; Ej: <code>Fe_2C.html</code> &nbsp;·&nbsp; <code>N_2A.html</code> &nbsp;·&nbsp; <code>Au_2D.html</code></div>
-      <input type="file" id="fi" accept=".html" multiple style="display:none" onchange="handleFiles(this.files)">
-    </div>
-    <div class="file-list" id="file-list"><p style="color:#bbb;font-size:12px;text-align:center;padding:1rem">Aún no se han subido fichas.</p></div>
-    <div class="btns-row">
-      <button class="btn btn-primary" onclick="buildTable()">Actualizar tabla</button>
-      <button class="btn" onclick="exportCSV()">Exportar CSV</button>
-      <button class="btn btn-danger" onclick="clearAll()">Limpiar todo</button>
+    <div id="maestro-content" style="display:none">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+        <button class="btn btn-danger" style="font-size:11px;padding:4px 10px" onclick="lockMaestro()">🔒 Cerrar sesión</button>
+      </div>
+      <div class="stats-row">
+        <div class="stat-card verde"><div class="sv" id="st-total">0</div><div class="sl">Cargadas</div></div>
+        <div class="stat-card"><div class="sv" id="st-2a">0</div><div class="sl">Grupo 2A</div></div>
+        <div class="stat-card"><div class="sv" id="st-2c">0</div><div class="sl">Grupo 2C</div></div>
+        <div class="stat-card"><div class="sv" id="st-2d">0</div><div class="sl">Grupo 2D</div></div>
+        <div class="stat-card"><div class="sv" id="st-falta">118</div><div class="sl">Faltantes</div></div>
+      </div>
+      <div class="prog-row">
+        <div class="prog-item"><div class="pi-label">Grupo 2A</div><div class="prog-wrap"><div class="prog-bar" id="pb-2a" style="width:0%"></div></div><div class="pi-count" id="pc-2a">0</div><div class="pi-sub">elementos</div></div>
+        <div class="prog-item"><div class="pi-label">Grupo 2C</div><div class="prog-wrap"><div class="prog-bar" id="pb-2c" style="width:0%"></div></div><div class="pi-count" id="pc-2c">0</div><div class="pi-sub">elementos</div></div>
+        <div class="prog-item"><div class="pi-label">Grupo 2D</div><div class="prog-wrap"><div class="prog-bar" id="pb-2d" style="width:0%"></div></div><div class="pi-count" id="pc-2d">0</div><div class="pi-sub">elementos</div></div>
+      </div>
+      <div class="dropzone" id="dropzone" onclick="document.getElementById('fi').click()">
+        <div class="dz-title">⬆ Subir fichas HTML</div>
+        <div class="dz-sub">Haz clic o arrastra archivos <b>.html</b> aquí<br>
+          Nombre: <code>SIMBOLO_GRUPO.html</code> &nbsp;·&nbsp; Ej: <code>Fe_2C.html</code> &nbsp;·&nbsp; <code>N_2A.html</code> &nbsp;·&nbsp; <code>Au_2D.html</code></div>
+        <input type="file" id="fi" accept=".html" multiple style="display:none" onchange="handleFiles(this.files)">
+      </div>
+      <div class="file-list" id="file-list"><p style="color:#bbb;font-size:12px;text-align:center;padding:1rem">Aún no se han subido fichas.</p></div>
+      <div class="btns-row">
+        <button class="btn btn-primary" onclick="buildTable()">Actualizar tabla</button>
+        <button class="btn" onclick="exportCSV()">Exportar CSV</button>
+        <button class="btn btn-danger" onclick="clearAll()">Limpiar todo</button>
+      </div>
+      <hr style="margin:1.5rem 0;border:none;border-top:0.5px solid #e0e0e0">
+      <div class="inst-card">
+        <h2>Instrucciones para el maestro</h2>
+        <div class="step"><div class="step-num">1</div><div class="step-text"><b>Comparte la pestaña "Prompt Alumnos"</b> con tus equipos. Cada equipo reemplaza el elemento, los nombres y el grupo.</div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-text"><b>El alumno pega el prompt en Claude.ai</b> y obtiene el HTML. Lo guarda como <code>SIMBOLO_GRUPO.html</code> (ej: <code>Fe_2C.html</code>).</div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-text"><b>Recibes los archivos</b> (correo, Drive, USB…) y los arrastras aquí arriba. La tabla se actualiza sola.</div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-text"><b>Haz clic en cualquier elemento</b> con borde verde para ver la ficha del alumno en pantalla completa.</div></div>
+        <div class="step"><div class="step-num">5</div><div class="step-text"><b>Exporta el CSV</b> para llevar control de entregas por grupo. Las fichas se guardan automáticamente en el navegador.</div></div>
+      </div>
+      <div class="conv-box">
+        <h3>Convención de nombres de archivo</h3>
+        <p>El archivo se llama: <code>SÍMBOLO_GRUPO.html</code><br>
+        Ejemplos: <code>H_2A.html</code> · <code>O_2C.html</code> · <code>Au_2D.html</code> · <code>Na_2A.html</code> · <code>Fe_2C.html</code><br>
+        El sistema detecta el elemento y el grupo automáticamente del nombre.</p>
+      </div>
     </div>
   </div>
 
   <div id="tab-prompt" class="panel">
     <div class="prompt-card">
       <h3>📋 Prompt listo para copiar y pegar en Claude</h3>
-      <div class="prompt-text" id="prompt-text">Hola Claude! Soy alumno de preparatoria y voy a generar la ficha del elemento químico: [ESCRIBE AQUÍ EL NOMBRE DEL ELEMENTO].
+      <div class="prompt-text" id="prompt-text">Hola Claude! Soy alumno de Secundaria y voy a generar la ficha del elemento químico: [ESCRIBE AQUÍ EL NOMBRE DEL ELEMENTO].
 
 Datos de mi equipo:
 - Integrantes: [NOMBRE 1], [NOMBRE 2], [NOMBRE 3]
@@ -193,22 +222,6 @@ Por favor genera una ficha completa en HTML con las siguientes características:
     </div>
   </div>
 
-  <div id="tab-instrucciones" class="panel">
-    <div class="inst-card">
-      <h2>Instrucciones para el maestro</h2>
-      <div class="step"><div class="step-num">1</div><div class="step-text"><b>Comparte la pestaña "Prompt Alumnos"</b> con tus equipos. Cada equipo reemplaza el elemento, los nombres y el grupo.</div></div>
-      <div class="step"><div class="step-num">2</div><div class="step-text"><b>El alumno pega el prompt en Claude.ai</b> y obtiene el HTML. Lo guarda como <code>SIMBOLO_GRUPO.html</code> (ej: <code>Fe_2C.html</code>).</div></div>
-      <div class="step"><div class="step-num">3</div><div class="step-text"><b>Recibes los archivos</b> (correo, Drive, USB…) y los arrastras al <b>Módulo Maestro</b>. La tabla se actualiza sola.</div></div>
-      <div class="step"><div class="step-num">4</div><div class="step-text"><b>Haz clic en cualquier elemento</b> con borde verde para ver la ficha del alumno en pantalla completa.</div></div>
-      <div class="step"><div class="step-num">5</div><div class="step-text"><b>Exporta el CSV</b> para llevar control de entregas por grupo. Las fichas se guardan automáticamente en el navegador.</div></div>
-    </div>
-    <div class="conv-box">
-      <h3>Convención de nombres de archivo</h3>
-      <p>El archivo se llama: <code>SÍMBOLO_GRUPO.html</code><br>
-      Ejemplos: <code>H_2A.html</code> · <code>O_2C.html</code> · <code>Au_2D.html</code> · <code>Na_2A.html</code> · <code>Fe_2C.html</code><br>
-      El sistema detecta el elemento y el grupo automáticamente del nombre.</p>
-    </div>
-  </div>
 </div>
 
 <div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
@@ -426,11 +439,30 @@ function copyPrompt(){
   });
 }
 
+function checkPwd(){
+  const v=document.getElementById('pwd-input').value;
+  const err=document.getElementById('pwd-err');
+  if(v==='2707'){
+    document.getElementById('maestro-lock').style.display='none';
+    document.getElementById('maestro-content').style.display='block';
+    err.textContent='';
+  } else {
+    err.textContent='Contraseña incorrecta';
+    document.getElementById('pwd-input').value='';
+    document.getElementById('pwd-input').focus();
+  }
+}
+function lockMaestro(){
+  document.getElementById('maestro-lock').style.display='block';
+  document.getElementById('maestro-content').style.display='none';
+  document.getElementById('pwd-input').value='';
+  document.getElementById('pwd-err').textContent='';
+}
 function showTab(id){
-  ['tabla','maestro','prompt','instrucciones'].forEach(t=>{
+  ['tabla','maestro','prompt'].forEach(t=>{
     document.getElementById('tab-'+t).classList.toggle('active',t===id);
   });
-  document.querySelectorAll('.tab').forEach((t,i)=>{t.classList.toggle('active',['tabla','maestro','prompt','instrucciones'][i]===id);});
+  document.querySelectorAll('.tab').forEach((t,i)=>{t.classList.toggle('active',['tabla','maestro','prompt'][i]===id);});
 }
 
 const dz=document.getElementById('dropzone');
