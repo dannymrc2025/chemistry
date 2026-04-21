@@ -221,7 +221,8 @@ Por favor genera una ficha completa en HTML con las siguientes características:
 
 4. FIRMA DEL EQUIPO al final: nombres de integrantes, grupo y fecha.
 
-5. CÓDIGO: Un solo archivo HTML autónomo, funciona directo en Chrome.
+5. CÓDIGO: Un solo archivo HTML autónomo, funciona directo en Chrome. MUY IMPORTANTE: en el &lt;head&gt; del HTML incluye este meta tag con los nombres reales del equipo:
+   &lt;meta name="integrantes" content="NOMBRE1, NOMBRE2, NOMBRE3"&gt;
 
 ¡Hazlo lo más bonito y completo posible para nuestra tabla periódica del salón!</div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
@@ -446,16 +447,30 @@ function handleFiles(files){
   Array.from(files).forEach(f=>{
     const name=f.name.replace(/\.html$/i,'');
     const parts=name.split('_');
-    const sym=parts[0],grupo=(parts[1]||'?').toUpperCase();
-    if(!getEl(sym)){errs.push(f.name);return;}
+    const rawSym=parts[0];
+    const grupo=(parts[1]||'?').toUpperCase();
+    // Buscar símbolo ignorando mayúsculas/minúsculas pero usando el correcto de la lista
+    const elFound=EL.find(e=>e.s.toLowerCase()===rawSym.toLowerCase());
+    if(!elFound){errs.push(f.name);return;}
+    const sym=elFound.s; // usar el símbolo correcto de la lista (ej: "Tl" no "TI")
     const r=new FileReader();
     r.onload=async e=>{
-      const data={html:e.target.result,grupo,file:f.name,fecha:new Date().toLocaleDateString('es-MX')};
+      const html=e.target.result;
+      // Extraer integrantes del meta tag: <meta name="integrantes" content="...">
+      let integrantes='';
+      const metaMatch=html.match(/<meta\s+name=["']integrantes["']\s+content=["']([^"']+)["']/i);
+      if(metaMatch) integrantes=metaMatch[1];
+      // Si no tiene meta tag, buscar en texto "Elaborado por" o "Integrantes:"
+      if(!integrantes){
+        const bodyMatch=html.match(/(?:integrantes?|elaborado por)[:\s]+([^\n<]{5,120})/i);
+        if(bodyMatch) integrantes=bodyMatch[1].replace(/<[^>]+>/g,'').trim();
+      }
+      const data={html,grupo,integrantes,file:f.name,fecha:new Date().toLocaleDateString('es-MX')};
       await saveToFirebase(sym, data);
     };
     r.readAsText(f);
   });
-  if(errs.length)setTimeout(()=>alert(`Archivos no reconocidos:\n${errs.join('\n')}\n\nUsa el formato SIMBOLO_GRUPO.html`),300);
+  if(errs.length)setTimeout(()=>alert(`Archivos no reconocidos:\n${errs.join('\n')}\n\nUsa el formato SIMBOLO_GRUPO.html\nEjemplos: Ti_2A.html (Titanio) · Tl_2C.html (Talio)`),300);
 }
 
 function renderFiles(){
@@ -464,9 +479,11 @@ function renderFiles(){
   if(!ents.length){fl.innerHTML='<p style="color:#bbb;font-size:12px;text-align:center;padding:1rem">Aún no se han subido fichas.</p>';return;}
   fl.innerHTML=ents.map(([s,d])=>{
     const el=getEl(s),f=el?FAM[el.f]:null;
-    return `<div class="file-item"><div class="fi-sym" style="background:${f?f.bg:'#eee'};color:${f?f.tx:'#555'}">${s}</div><div class="fi-info"><div class="fi-name">${el?el.nm:s}</div><div class="fi-meta">Grupo ${d.grupo} · ${d.fecha} · ${d.file}</div></div><span class="fi-status">En nube ☁</span><button class="btn btn-sm btn-danger" onclick="rmFicha('${s}')">Quitar</button></div>`;
+    const nombres=d.integrantes?`· ${d.integrantes}`:'';
+    return `<div class="file-item"><div class="fi-sym" style="background:${f?f.bg:'#eee'};color:${f?f.tx:'#555'}">${s}</div><div class="fi-info"><div class="fi-name">${el?el.nm:s}</div><div class="fi-meta">Grupo ${d.grupo} · ${d.fecha} ${nombres}</div></div><span class="fi-status">En nube ☁</span><button class="btn btn-sm btn-danger" onclick="rmFicha('${s}')">Quitar</button></div>`;
   }).join('');
 }
+
 
 async function rmFicha(s){
   if(!window._dbReady) return;
@@ -507,8 +524,11 @@ function updateStats(){
 function filterTable(f,btn){curF=f;document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');buildTable();}
 
 function exportCSV(){
-  let csv='Símbolo,Elemento,Familia,Grupo,Archivo,Fecha\n';
-  Object.entries(fichas).forEach(([s,d])=>{const el=getEl(s);csv+=`${s},"${el?el.nm:'?'}","${el?FAM[el.f].l:'?'}",${d.grupo},"${d.file}",${d.fecha}\n`;});
+  let csv='Símbolo,Elemento,Familia,Grupo,Integrantes,Archivo,Fecha\n';
+  Object.entries(fichas).forEach(([s,d])=>{
+    const el=getEl(s);
+    csv+=`${s},"${el?el.nm:'?'}","${el?FAM[el.f].l:'?'}",${d.grupo},"${d.integrantes||''}","${d.file}",${d.fecha}\n`;
+  });
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='registro_tabla.csv';a.click();
 }
 
