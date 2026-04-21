@@ -442,18 +442,22 @@ async function saveToFirebase(sym, data){
   } catch(e){ alert('Error al guardar en la nube: '+e.message); }
 }
 
+function normalizar(str){
+  return str.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+
 function handleFiles(files){
   const errs=[];
   Array.from(files).forEach(f=>{
-    const name=f.name.replace(/\.html$/i,'');
+    const name=f.name.replace(/\.html$/i,'').trim();
     const parts=name.split('_');
-    const rawSym=parts[0];
-    const grupo=(parts[1]||'?').toUpperCase();
-    // 1. Coincidencia exacta por símbolo
+    const rawSym=parts[0].trim();
+    const grupo=(parts[1]||'?').trim().toUpperCase();
+    // 1. Coincidencia exacta por símbolo (Ti, Tl, Fe...)
     let elFound=EL.find(e=>e.s===rawSym);
-    // 2. Coincidencia por nombre completo (ej: "Talio", "Titanio", "Hierro")
-    if(!elFound) elFound=EL.find(e=>e.nm.toLowerCase()===rawSym.toLowerCase());
-    // 3. Coincidencia inexacta por símbolo (último recurso)
+    // 2. Coincidencia por nombre completo normalizando tildes (Talio, Titanio, Nitrógeno...)
+    if(!elFound) elFound=EL.find(e=>normalizar(e.nm)===normalizar(rawSym));
+    // 3. Coincidencia inexacta por símbolo sin distinguir mayúsculas
     if(!elFound) elFound=EL.find(e=>e.s.toLowerCase()===rawSym.toLowerCase());
     if(!elFound){errs.push(f.name);return;}
     const sym=elFound.s;
@@ -474,7 +478,7 @@ function handleFiles(files){
     };
     r.readAsText(f);
   });
-  if(errs.length)setTimeout(()=>alert(`Archivos no reconocidos:\n${errs.join('\n')}\n\nUsa símbolo o nombre completo:\nEjemplos: Ti_2A.html · Talio_2C.html · Hierro_2D.html`),300);
+  if(errs.length)setTimeout(()=>alert(`Archivos no reconocidos:\n${errs.join('\n')}\n\nUsa símbolo o nombre completo del elemento:\nEjemplos: Ti_2A.html · Talio_2C.html · Nitrogeno_2A.html`),300);
 }
 
 function renderFiles(){
