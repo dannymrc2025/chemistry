@@ -449,18 +449,21 @@ function handleFiles(files){
     const parts=name.split('_');
     const rawSym=parts[0];
     const grupo=(parts[1]||'?').toUpperCase();
-    // Buscar símbolo ignorando mayúsculas/minúsculas pero usando el correcto de la lista
-    const elFound=EL.find(e=>e.s.toLowerCase()===rawSym.toLowerCase());
+    // Buscar coincidencia exacta primero
+    let elFound=EL.find(e=>e.s===rawSym);
+    // Si no hay exacta, buscar ignorando mayúsculas
+    if(!elFound) elFound=EL.find(e=>e.s.toLowerCase()===rawSym.toLowerCase());
     if(!elFound){errs.push(f.name);return;}
-    const sym=elFound.s; // usar el símbolo correcto de la lista (ej: "Tl" no "TI")
+    const sym=elFound.s;
+    // Confirmar siempre con el maestro antes de guardar
+    const confirmar=confirm(`¿Confirmas que este archivo corresponde a:\n\n🧪 ${elFound.nm} (${sym})\n📁 Archivo: ${f.name}\n👥 Grupo: ${grupo}\n\nSi el elemento no es correcto, cancela y renombra el archivo.`);
+    if(!confirmar) return;
     const r=new FileReader();
     r.onload=async e=>{
       const html=e.target.result;
-      // Extraer integrantes del meta tag: <meta name="integrantes" content="...">
       let integrantes='';
       const metaMatch=html.match(/<meta\s+name=["']integrantes["']\s+content=["']([^"']+)["']/i);
       if(metaMatch) integrantes=metaMatch[1];
-      // Si no tiene meta tag, buscar en texto "Elaborado por" o "Integrantes:"
       if(!integrantes){
         const bodyMatch=html.match(/(?:integrantes?|elaborado por)[:\s]+([^\n<]{5,120})/i);
         if(bodyMatch) integrantes=bodyMatch[1].replace(/<[^>]+>/g,'').trim();
