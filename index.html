@@ -158,7 +158,7 @@ code{background:#e8f5f0;padding:1px 5px;border-radius:4px;font-size:11.5px;color
       <div class="dropzone" id="dropzone" onclick="document.getElementById('fi').click()">
         <div class="dz-title">⬆ Subir fichas HTML</div>
         <div class="dz-sub">Haz clic o arrastra archivos <b>.html</b> aquí<br>
-          Nombre: <code>SIMBOLO_GRUPO.html</code> &nbsp;·&nbsp; Ej: <code>Fe_2C.html</code> &nbsp;·&nbsp; <code>N_2A.html</code> &nbsp;·&nbsp; <code>Au_2D.html</code></div>
+          Usa símbolo o nombre completo: <code>Ti_2A.html</code> · <code>Talio_2C.html</code> · <code>Hierro_2D.html</code></div>
         <input type="file" id="fi" accept=".html" multiple style="display:none" onchange="handleFiles(this.files)">
       </div>
       <div class="file-list" id="file-list"><p style="color:#bbb;font-size:12px;text-align:center;padding:1rem">Cargando fichas...</p></div>
@@ -449,13 +449,14 @@ function handleFiles(files){
     const parts=name.split('_');
     const rawSym=parts[0];
     const grupo=(parts[1]||'?').toUpperCase();
-    // Buscar coincidencia exacta primero
+    // 1. Coincidencia exacta por símbolo
     let elFound=EL.find(e=>e.s===rawSym);
-    // Si no hay exacta, buscar ignorando mayúsculas
+    // 2. Coincidencia por nombre completo (ej: "Talio", "Titanio", "Hierro")
+    if(!elFound) elFound=EL.find(e=>e.nm.toLowerCase()===rawSym.toLowerCase());
+    // 3. Coincidencia inexacta por símbolo (último recurso)
     if(!elFound) elFound=EL.find(e=>e.s.toLowerCase()===rawSym.toLowerCase());
     if(!elFound){errs.push(f.name);return;}
     const sym=elFound.s;
-    // Confirmar siempre con el maestro antes de guardar
     const confirmar=confirm(`¿Confirmas que este archivo corresponde a:\n\n🧪 ${elFound.nm} (${sym})\n📁 Archivo: ${f.name}\n👥 Grupo: ${grupo}\n\nSi el elemento no es correcto, cancela y renombra el archivo.`);
     if(!confirmar) return;
     const r=new FileReader();
@@ -473,7 +474,7 @@ function handleFiles(files){
     };
     r.readAsText(f);
   });
-  if(errs.length)setTimeout(()=>alert(`Archivos no reconocidos:\n${errs.join('\n')}\n\nUsa el formato SIMBOLO_GRUPO.html\nEjemplos: Ti_2A.html (Titanio) · Tl_2C.html (Talio)`),300);
+  if(errs.length)setTimeout(()=>alert(`Archivos no reconocidos:\n${errs.join('\n')}\n\nUsa símbolo o nombre completo:\nEjemplos: Ti_2A.html · Talio_2C.html · Hierro_2D.html`),300);
 }
 
 function renderFiles(){
