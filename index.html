@@ -255,13 +255,13 @@ const firebaseConfig = {
   projectId: "chemistrydb-42fd2",
   storageBucket: "chemistrydb-42fd2.firebasestorage.app",
   messagingSenderId: "556461732525",
-  appId: "1:556461732525:web:24ada57e574dee155f8c24",
-  measurementId: "G-EZ94E9E2GS"
+  appId: "1:556461732525:web:24ada57e574dee155f8c24"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const COLL = "fichas";
+const ind = document.getElementById('sync-indicator');
 
 window._db = db;
 window._collection = collection;
@@ -269,19 +269,16 @@ window._doc = doc;
 window._setDoc = setDoc;
 window._getDocs = getDocs;
 window._deleteDoc = deleteDoc;
-window._onSnapshot = onSnapshot;
 window._COLL = COLL;
+window._dbReady = true;
 
-const ind = document.getElementById('sync-indicator');
 ind.textContent = '● En vivo';
 ind.className = 'sync-badge sync-ok';
 
-// Escucha cambios en tiempo real
-const unsubscribe = onSnapshot(collection(db, COLL), (snapshot) => {
+onSnapshot(collection(db, COLL), (snapshot) => {
   snapshot.docChanges().forEach(change => {
     if (change.type === 'added' || change.type === 'modified') {
-      const d = change.doc.data();
-      window.fichas[change.doc.id] = d;
+      window.fichas[change.doc.id] = change.doc.data();
     }
     if (change.type === 'removed') {
       delete window.fichas[change.doc.id];
@@ -290,11 +287,8 @@ const unsubscribe = onSnapshot(collection(db, COLL), (snapshot) => {
   buildTable();
   renderFiles();
 }, (error) => {
-  ind.textContent = '● Sin conexión';
-  ind.className = 'sync-badge sync-err';
+  console.warn('Listener error (no crítico):', error.message);
 });
-
-window._dbReady = true;
 </script>
 
 <script>
@@ -339,7 +333,6 @@ const EL=[
   {n:51,s:"Sb",nm:"Antimonio",f:"met",p:5,g:15},{n:52,s:"Te",nm:"Teluro",f:"met",p:5,g:16},
   {n:53,s:"I",nm:"Yodo",f:"hal",p:5,g:17},{n:54,s:"Xe",nm:"Xenón",f:"gas",p:5,g:18},
   {n:55,s:"Cs",nm:"Cesio",f:"alc",p:6,g:1},{n:56,s:"Ba",nm:"Bario",f:"alkT",p:6,g:2},
-  {n:57,s:"La",nm:"Lantano",f:"lan",p:6,g:3},
   {n:72,s:"Hf",nm:"Hafnio",f:"tra",p:6,g:4},{n:73,s:"Ta",nm:"Tántalo",f:"tra",p:6,g:5},
   {n:74,s:"W",nm:"Wolframio",f:"tra",p:6,g:6},{n:75,s:"Re",nm:"Renio",f:"tra",p:6,g:7},
   {n:76,s:"Os",nm:"Osmio",f:"tra",p:6,g:8},{n:77,s:"Ir",nm:"Iridio",f:"tra",p:6,g:9},
@@ -349,7 +342,6 @@ const EL=[
   {n:84,s:"Po",nm:"Polonio",f:"met",p:6,g:16},{n:85,s:"At",nm:"Astato",f:"hal",p:6,g:17},
   {n:86,s:"Rn",nm:"Radón",f:"gas",p:6,g:18},
   {n:87,s:"Fr",nm:"Francio",f:"alc",p:7,g:1},{n:88,s:"Ra",nm:"Radio",f:"alkT",p:7,g:2},
-  {n:89,s:"Ac",nm:"Actinio",f:"act",p:7,g:3},
   {n:104,s:"Rf",nm:"Rutherfordio",f:"tra",p:7,g:4},{n:105,s:"Db",nm:"Dubnio",f:"tra",p:7,g:5},
   {n:106,s:"Sg",nm:"Seaborgio",f:"tra",p:7,g:6},{n:107,s:"Bh",nm:"Bohrio",f:"tra",p:7,g:7},
   {n:108,s:"Hs",nm:"Hasio",f:"tra",p:7,g:8},{n:109,s:"Mt",nm:"Meitnerio",f:"tra",p:7,g:9},
@@ -436,10 +428,10 @@ function openFicha(el){
 function closeModal(){document.getElementById('modal').classList.remove('open');}
 
 async function saveToFirebase(sym, data){
-  if(!window._dbReady) return;
+  if(!window._dbReady){alert('Conexión no lista, espera unos segundos e intenta de nuevo.');return;}
   try {
     await window._setDoc(window._doc(window._db, window._COLL, sym), data);
-  } catch(e){ alert('Error al guardar en la nube: '+e.message); }
+  } catch(e){ alert('Error al guardar: '+e.message); }
 }
 
 function normalizar(str){
@@ -494,14 +486,15 @@ function renderFiles(){
 
 
 async function rmFicha(s){
-  if(!window._dbReady) return;
   if(!confirm(`¿Quitar la ficha de ${getEl(s)?.nm||s}?`)) return;
-  try { await window._deleteDoc(window._doc(window._db, window._COLL, s)); }
-  catch(e){ alert('Error: '+e.message); }
+  try {
+    await window._deleteDoc(window._doc(window._db, window._COLL, s));
+    delete fichas[s]; renderFiles(); buildTable();
+  } catch(e){ alert('Error al borrar: '+e.message); }
 }
 
 async function loadFromFirebase(){
-  if(!window._dbReady){alert('Firebase no está listo aún.');return;}
+  if(!window._dbReady){alert('Conexión no lista aún.');return;}
   try {
     const snap = await window._getDocs(window._collection(window._db, window._COLL));
     window.fichas={};
@@ -546,6 +539,7 @@ async function clearAll(){
   for(const s of syms){
     try{ await window._deleteDoc(window._doc(window._db, window._COLL, s)); }catch(e){}
   }
+  window.fichas={}; renderFiles(); buildTable();
 }
 
 function copyPrompt(){
