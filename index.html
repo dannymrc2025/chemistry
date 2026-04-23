@@ -357,6 +357,8 @@ const EL=[
   {n:66,s:"Dy",nm:"Disprosio",f:"lan",lp:10},{n:67,s:"Ho",nm:"Holmio",f:"lan",lp:11},
   {n:68,s:"Er",nm:"Erbio",f:"lan",lp:12},{n:69,s:"Tm",nm:"Tulio",f:"lan",lp:13},
   {n:70,s:"Yb",nm:"Iterbio",f:"lan",lp:14},{n:71,s:"Lu",nm:"Lutecio",f:"lan",lp:15},
+  {n:57,s:"La",nm:"Lantano",f:"lan",lp:1},
+  {n:89,s:"Ac",nm:"Actinio",f:"act",ap:1},
   {n:90,s:"Th",nm:"Torio",f:"act",ap:2},{n:91,s:"Pa",nm:"Protactinio",f:"act",ap:3},
   {n:92,s:"U",nm:"Uranio",f:"act",ap:4},{n:93,s:"Np",nm:"Neptunio",f:"act",ap:5},
   {n:94,s:"Pu",nm:"Plutonio",f:"act",ap:6},{n:95,s:"Am",nm:"Americio",f:"act",ap:7},
@@ -403,13 +405,11 @@ function buildTable(){
   ls.innerHTML='';
   const lanRow=document.createElement('div');lanRow.className='lan-row';
   for(let i=0;i<3;i++)lanRow.appendChild(mkEmpty(null));
-  const laEl=getEl('La');if(laEl)lanRow.appendChild(mkCell(laEl));
   EL.filter(e=>e.lp).sort((a,b)=>a.lp-b.lp).forEach(el=>lanRow.appendChild(mkCell(el)));
   lanRow.appendChild(mkEmpty(null));
   ls.appendChild(lanRow);
   const actRow=document.createElement('div');actRow.className='lan-row';
   for(let i=0;i<3;i++)actRow.appendChild(mkEmpty(null));
-  const acEl=getEl('Ac');if(acEl)actRow.appendChild(mkCell(acEl));
   EL.filter(e=>e.ap).sort((a,b)=>a.ap-b.ap).forEach(el=>actRow.appendChild(mkCell(el)));
   actRow.appendChild(mkEmpty(null));
   ls.appendChild(actRow);
